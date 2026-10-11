@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Footer from "@/components/footer";
 
 const getYear = new Date().getFullYear();
 
@@ -34,9 +35,7 @@ export default function NotFound() {
       </main>
 
       {/* Rodapé fixo com Direitos de Autor */}
-      <footer className="py-8 text-center text-xs text-zinc-400 dark:text-zinc-600">
-        <p className="font-bold">&copy; {getYear} Enrico Sobrinho Gregório. Todos os direitos reservados.</p>
-      </footer>
+      <Footer />
     </div>
   );
 }
