@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["192.168.18.9"],
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,

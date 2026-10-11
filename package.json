@@ -1,5 +1,5 @@
 {
-  "name": "oioi",
+  "name": "chat",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,6 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@livekit/components-react": "^2.9.24",
+    "@livekit/components-styles": "^1.2.0",
+    "livekit-server-sdk": "^2.19.1",
     "next": "16.4.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
