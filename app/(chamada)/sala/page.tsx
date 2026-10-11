@@ -6,30 +6,55 @@ import {
   VideoConference,
   RoomAudioRenderer,
 } from '@livekit/components-react';
-import { useEffect, useState } from 'react';
-import Footer from "@/components/footer";
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import Footer from '@/components/footer';
 
-
-export default function SalaDeChamada() {
+// Separamos a lógica principal em um subcomponente
+function SalaContent() {
+  const searchParams = useSearchParams();
   const [token, setToken] = useState("");
 
-  // Fixamos a sala e o usuário por enquanto para testar
-  const room = "Chat-SalaPrincipal";
-  const name = "Enrico"; 
+  const room = "Chat";
+  
+  // Se o nome vier vazio ou nulo da URL, manda de volta para a Home.
+  const name = searchParams.get("username");
+  const router = useRouter();
 
   useEffect(() => {
+    // Verifica se não está vazio.
+    if (!name) {
+      router.replace("/");
+      return;
+    }
+
+    // Verifica se contém pelo menos uma letra E se possui apenas os caracteres permitidos.
+    const isValidName = 
+      name.length <= 20 && 
+      /^[a-zA-ZÀ-ÿ0-9\-_ ]+$/.test(name) && 
+      /[a-zA-ZÀ-ÿ]/.test(name);
+    if (!isValidName) {
+      router.replace("/");
+      return;
+    }
+
+    // Exige pelo menos uma letra, para bloquear "123", "---", "___", etc.
+    if (!/[a-zA-ZÀ-ÿ]/.test(name)) {
+      router.replace("/");
+      return;
+    }
+
     (async () => {
       try {
-        const resp = await fetch(`/api/token?room=${room}&username=${name}`);
+        const resp = await fetch(`/api/token?room=${room}&username=${encodeURIComponent(name)}`);
         const data = await resp.json();
         setToken(data.token);
       } catch (e) {
         console.error("Erro ao buscar o token:", e);
       }
     })();
-  }, [room, name]);
+  }, [room, name, router]);
 
-  // Tela de "conectando".
   if (token === "") {
     return (
       <div className="flex min-h-screen flex-col bg-zinc-50 text-zinc-900 transition-colors duration-300 dark:bg-zinc-950 dark:text-zinc-100 font-sans">
@@ -41,20 +66,29 @@ export default function SalaDeChamada() {
     );
   }
 
-  // Sala conectada.
   return (
     <LiveKitRoom
       video={true}
       audio={true}
       token={token}
       serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
-      // Remove o estilo fixo e aplica as classes do Tailwind que de acordo com o tema.
       className="flex min-h-screen flex-col bg-zinc-50 text-zinc-900 transition-colors duration-300 dark:bg-zinc-950 dark:text-zinc-100 font-sans"
     >
-      {/* Por enquanto, mantém o componente padrão do LiveKit para não quebrar o vídeo */}
       <VideoConference />
-      
       <RoomAudioRenderer />
     </LiveKitRoom>
+  );
+}
+
+// O componente principal apenas encapsula a lógica com o Suspense obrigatório.
+export default function SalaDeChamada() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen flex-col bg-zinc-50 text-zinc-900 transition-colors duration-300 dark:bg-zinc-950 dark:text-zinc-100 font-sans items-center justify-center">
+        <h1 className="text-3xl font-medium tracking-tight">Carregando...</h1>
+      </div>
+    }>
+      <SalaContent />
+    </Suspense>
   );
 }
