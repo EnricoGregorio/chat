@@ -25,6 +25,8 @@ export default function Home() {
     };
 
     fetchParticipants();
+    
+    // Atualiza a lista a cada 10 segundos para quem deixar a tela aberta
     const interval = setInterval(fetchParticipants, 10000);
     return () => clearInterval(interval);
   }, []);
@@ -56,8 +58,9 @@ export default function Home() {
     router.push(`/sala?username=${encodeURIComponent(name)}`);
   };
 
+  // Função para renderizar o texto dos participantes dinamicamente.
   const renderParticipantsText = () => {
-    if (participants.length === 0) return "A sala está vazia. Seja o primeiro a entrar.";
+    if (participants.length === 0) return "A sala está vazia.";
     if (participants.length === 1) return <><span className="font-semibold text-zinc-900 dark:text-zinc-100">{participants[0]}</span> está na call.</>;
     if (participants.length === 2) return <><span className="font-semibold text-zinc-900 dark:text-zinc-100">{participants[0]}</span> e <span className="font-semibold text-zinc-900 dark:text-zinc-100">{participants[1]}</span> estão na call.</>;
     return <><span className="font-semibold text-zinc-900 dark:text-zinc-100">{participants[0]}</span>, <span className="font-semibold text-zinc-900 dark:text-zinc-100">{participants[1]}</span> e mais <span className="font-semibold text-zinc-900 dark:text-zinc-100">{participants.length - 2}</span> estão na call.</>;

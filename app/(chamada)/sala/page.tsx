@@ -3,14 +3,65 @@
 import '@livekit/components-styles';
 import {
   LiveKitRoom,
-  VideoConference,
   RoomAudioRenderer,
+  ControlBar,
+  useTracks,
+  GridLayout,
+  ParticipantTile,
 } from '@livekit/components-react';
+import { Track } from 'livekit-client';
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Footer from '@/components/footer';
 
-// Separamos a lógica principal em um subcomponente
+// Componente de grade de vídeos.
+function GradeDeVideos() {
+  // O hook useTracks busca todas as câmeras e telas compartilhadas da sala.
+  const tracks = useTracks(
+    [
+      { source: Track.Source.Camera, withPlaceholder: true },
+      { source: Track.Source.ScreenShare, withPlaceholder: false },
+    ],
+    { onlySubscribed: false }
+  );
+
+  return (
+    // O GridLayout organiza os quadrados de vídeo automaticamente.
+    <GridLayout tracks={tracks} className="h-full w-full p-4">
+      {/* O ParticipantTile é o quadrado individual de cada pessoa. */}
+      <ParticipantTile className="rounded-2xl shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800" />
+    </GridLayout>
+  );
+}
+
+// Layout customizado da sala.
+function LayoutDaSala() {
+  return (
+    <div className="flex h-screen w-full flex-col">
+      
+      {/* Cabeçalho Customizado */}
+      <header className="flex w-full items-center justify-between px-8 py-4">
+        <div className="flex items-center gap-4">
+          <div className="h-6 w-6 rotate-45 rounded-sm bg-red-700/90 dark:bg-red-600"></div>
+          <span className="text-xl font-medium tracking-tight text-zinc-900 dark:text-zinc-100">Chat</span>
+        </div>
+      </header>
+
+      {/* Área principal de vídeo */}
+      <main className="flex-1 overflow-hidden">
+        <GradeDeVideos />
+      </main>
+
+      {/* Barra de controles inferior */}
+      <div className="flex justify-center pb-8 pt-4">
+        {/* O ControlBar do LiveKit já traz os botões de Mutar, Câmera, Tela e Sair */}
+        <ControlBar className="rounded-2xl bg-zinc-900 px-4 py-2 shadow-lg dark:bg-zinc-100" />
+      </div>
+
+    </div>
+  );
+}
+
 function SalaContent() {
   const searchParams = useSearchParams();
   const [token, setToken] = useState("");
@@ -74,7 +125,7 @@ function SalaContent() {
       serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
       className="flex min-h-screen flex-col bg-zinc-50 text-zinc-900 transition-colors duration-300 dark:bg-zinc-950 dark:text-zinc-100 font-sans"
     >
-      <VideoConference />
+      <LayoutDaSala />
       <RoomAudioRenderer />
     </LiveKitRoom>
   );
