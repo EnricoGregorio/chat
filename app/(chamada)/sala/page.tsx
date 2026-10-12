@@ -13,6 +13,7 @@ import {
   useTrackToggle,
   useMediaDeviceSelect,
   useDisconnectButton,
+  useLocalParticipant,
 } from '@livekit/components-react';
 import { Track } from 'livekit-client';
 import { useEffect, useState, Suspense, useRef } from 'react';
@@ -65,7 +66,6 @@ function WebcamItem({ trackRef, isSharing }: { trackRef: TrackReferenceOrPlaceho
           </div>
         </div>
       ) : (
-        // A câmera real (se não estiver mutado)
         // Checa se trackRef.publication e trackRef.participant existem
         // e faz um "Type Assertion" para forçar o TypeScript a aceitar.
         trackRef.publication && (
@@ -211,98 +211,109 @@ function BotaoDispositivo({
 }
 
 // Botão para compartilhar a tela.
-function BotaoSimples({ source, label, iconOn, iconOff }: { source: Track.Source, label: string, iconOn: React.ReactNode, iconOff: React.ReactNode }) {
+function BotaoSimples({ 
+  source,
+  label,
+  iconOn,
+  iconOff,
+  isDisabled,
+  isOtherSharing
+}: { 
+  source: Track.Source, 
+  label: string, 
+  iconOn: React.ReactNode, 
+  iconOff: React.ReactNode,
+  isDisabled?: boolean,
+  isOtherSharing?: boolean
+}) {
   const { toggle, enabled } = useTrackToggle({ source: source as any });
   
   return (
     <button 
-      onClick={() => toggle()}
-      className={`cursor-pointer flex items-center gap-2 px-3 sm:px-4 py-2.5 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm transition-all duration-200 ${
-        enabled 
-          ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800/50' 
-          : 'bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+      onClick={isDisabled ? undefined : () => toggle()}
+      disabled={isDisabled}
+      className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 border rounded-xl shadow-sm transition-all duration-200 ${
+        isDisabled
+          ? 'opacity-40 bg-zinc-100 border-zinc-200 text-zinc-400 dark:bg-zinc-800/40 dark:border-zinc-800 dark:text-zinc-500 cursor-not-allowed'
+          : enabled 
+            ? 'cursor-pointer bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800/50' 
+            : 'cursor-pointer bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800'
       }`}
     >
-      {enabled ? iconOn : iconOff}
-      {/* Esconde o texto no celular */}
-      <span className="hidden sm:inline text-sm font-medium">{label}</span>
+      {isDisabled ? (
+        // Ícone de Cadeado/Ocupado se outra pessoa estiver transmitindo
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+      ) : enabled ? iconOn : iconOff}
+      <span className="hidden sm:inline text-sm font-medium">
+        {isOtherSharing ? 'Em uso' : label}
+      </span>
     </button>
   );
 }
 
 // Montagem da bara customizada.
-function BarraDeControlesCustomizada() {
+function BarraDeControlesCustomizada({ 
+  isOtherSharing, 
+  isFullscreen, 
+  onToggleFullscreen 
+}: { 
+  isOtherSharing: boolean, 
+  isFullscreen: boolean, 
+  onToggleFullscreen: () => void 
+}) {
   const { buttonProps } = useDisconnectButton({}); // Hook para sair da sala.
 
   // Ícones SVG minimalistas (On/Off)
-  const iconMicOn = (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-      <line x1="12" y1="19" x2="12" y2="22" />
-    </svg>
-  );
-  
-  const iconMicOff = (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <line x1="2" y1="2" x2="22" y2="22" />
-      <path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2" />
-      <path d="M5 10v2a7 7 0 0 0 12 5" />
-      <path d="M15 9.34V5a3 3 0 0 0-5.68-1.33" />
-      <path d="M9 9v3a3 3 0 0 0 5.12 2.12" />
-      <line x1="12" y1="19" x2="12" y2="22" />
-    </svg>
-  );
-
-  const iconCamOn = (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 8v8l-6-4.32V16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2.32Z" />
-    </svg>
-  );
-  
-  const iconCamOff = (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10.66 6H14a2 2 0 0 1 2 2v2.34l1 1L22 8v8l-2.08-2.082" />
-      <path d="M16.95 16.95A2 2 0 0 1 14 18H6a2 2 0 0 1-2-2V8a2 2 0 0 1 1.05-1.75" />
-      <line x1="2" y1="2" x2="22" y2="22" />
-    </svg>
-  );
-
-  const iconScreenOn = (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="m9 10 3-3 3 3" />
-      <path d="M12 7v8" />
-      <rect width="20" height="14" x="2" y="3" rx="2" />
-      <path d="M12 17v4" />
-      <path d="M8 21h8" />
-    </svg>
-  );
-  
-  const iconScreenOff = (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 17H4a2 2 0 0 1-2-2V5c0-1.5 1-2 1-2" />
-      <path d="M22 15V5a2 2 0 0 0-2-2H9" />
-      <path d="M8 21h8" />
-      <path d="M12 17v4" />
-      <line x1="2" y1="2" x2="22" y2="22" />
-    </svg>
-  );
+  const iconMicOn = <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="22" /></svg>;
+  const iconMicOff = <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><line x1="2" y1="2" x2="22" y2="22" /><path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2" /><path d="M5 10v2a7 7 0 0 0 12 5" /><path d="M15 9.34V5a3 3 0 0 0-5.68-1.33" /><path d="M9 9v3a3 3 0 0 0 5.12 2.12" /><line x1="12" y1="19" x2="12" y2="22" /></svg>;
+  const iconCamOn = <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M22 8v8l-6-4.32V16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2.32Z" /></svg>;
+  const iconCamOff = <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M10.66 6H14a2 2 0 0 1 2 2v2.34l1 1L22 8v8l-2.08-2.082" /><path d="M16.95 16.95A2 2 0 0 1 14 18H6a2 2 0 0 1-2-2V8a2 2 0 0 1 1.05-1.75" /><line x1="2" y1="2" x2="22" y2="22" /></svg>;
+  const iconScreenOn = <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="m9 10 3-3 3 3" /><path d="M12 7v8" /><rect width="20" height="14" x="2" y="3" rx="2" /><path d="M12 17v4" /><path d="M8 21h8" /></svg>;
+  const iconScreenOff = <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M17 17H4a2 2 0 0 1-2-2V5c0-1.5 1-2 1-2" /><path d="M22 15V5a2 2 0 0 0-2-2H9" /><path d="M8 21h8" /><path d="M12 17v4" /><line x1="2" y1="2" x2="22" y2="22" /></svg>;
 
   return (
     // Adicionado flex-wrap, max-w-[95vw] para limitar a largura da tela, e ajuste de gaps
-    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 bg-white/50 dark:bg-zinc-900/50 p-2 rounded-2xl backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/50 shadow-lg max-w-[95vw] sm:max-w-fit mx-auto">
+    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 bg-white/55 dark:bg-zinc-900/55 p-2 rounded-2xl backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/50 shadow-lg max-w-[95vw] sm:max-w-fit mx-auto">
       <BotaoDispositivo source={Track.Source.Microphone} kind="audioinput" label="Microfone" iconOn={iconMicOn} iconOff={iconMicOff} />
       <BotaoDispositivo source={Track.Source.Camera} kind="videoinput" label="Câmera" iconOn={iconCamOn} iconOff={iconCamOff} />
-      <BotaoSimples source={Track.Source.ScreenShare} label="Tela" iconOn={iconScreenOn} iconOff={iconScreenOff} />
       
+      {/* Botão de Tela Com Compartilhamento Unificado */}
+      <BotaoSimples 
+        source={Track.Source.ScreenShare} 
+        label="Tela" 
+        iconOn={iconScreenOn} 
+        iconOff={iconScreenOff} 
+        isDisabled={isOtherSharing} 
+        isOtherSharing={isOtherSharing}
+      />
+      
+      {/* Botão para Ativar/Desativar Tela Cheia */}
+      <button 
+        onClick={onToggleFullscreen}
+        className="cursor-pointer flex items-center justify-center p-2.5 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm transition-all duration-200"
+        title={isFullscreen ? "Sair da Tela Cheia" : "Tela Cheia"}
+      >
+        {isFullscreen ? (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 14h6m0 0v6m0-6L3 21m17-7h-6m0 0v6m0-6l7 7M4 10h6m0 0V4m0 6L3 3m17 7h-6m0 0V4m0 6l7-7" />
+          </svg>
+        ) : (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-5V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4M4 20l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
+          </svg>
+        )}
+      </button>
+
       <div className="hidden sm:block w-px h-8 bg-zinc-300 dark:bg-zinc-700 mx-2"></div>
       
       <button 
         onClick={buttonProps.onClick}
         className="cursor-pointer flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-sm transition-colors font-medium ml-auto"
       >
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+           <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
         </svg>
         <span>Sair<span className="hidden sm:inline"> da Sala</span></span>
       </button>
@@ -314,27 +325,56 @@ function BarraDeControlesCustomizada() {
 function LayoutDaSala() {
   const cameraTracks = useTracks([Track.Source.Camera], { onlySubscribed: false });
   const screenShareTracks = useTracks([Track.Source.ScreenShare], { onlySubscribed: false });
+  const { localParticipant } = useLocalParticipant();
 
   const isSharingScreen = screenShareTracks.length > 0;
+  
+  // Descobre se outrem está compartilhando a tela.
+  const isOtherSharing = screenShareTracks.some(
+    (track) => track.participant.identity !== localParticipant?.identity
+  );
+
+  // Controle de Tela Cheia nativo / pseudo-fullscreen.
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen()
+        .then(() => setIsFullscreen(true))
+        .catch(() => setIsFullscreen(true)); // Fallback para iOS
+    } else {
+      document.exitFullscreen()
+        .then(() => setIsFullscreen(false))
+        .catch(() => setIsFullscreen(false));
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
 
   return (
     <div className="flex h-screen w-full flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors duration-300">
-      
-      {/* Cabeçalho */}
-      <header className="relative flex w-full items-center justify-center px-8 py-6 shrink-0">
-        <div className="absolute left-8">
-          <ThemeToggle />
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="h-6 w-6 rotate-45 rounded-sm bg-red-700/90 dark:bg-red-600 shadow-sm"></div>
-          <span className="text-xl font-medium tracking-tight">Chat</span>
-        </div>
-      </header>
+      {/* Cabeçalho que desaparece ao deitar no smartphone ou usar tela cheia */}
+      {(!isFullscreen) && (
+        <header className="relative flex w-full items-center justify-between sm:justify-center px-6 py-4 sm:px-8 sm:py-6 shrink-0 landscape:hidden sm:landscape:flex">
+          <div className="sm:absolute sm:left-8">
+            <ThemeToggle />
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="h-6 w-6 rotate-45 rounded-sm bg-red-700/90 dark:bg-red-600 shadow-sm"></div>
+            <span className="text-xl font-medium tracking-tight">Chat</span>
+          </div>
+        </header>
+      )}
 
       {/* Área Principal */}
-      <main className={`flex-1 overflow-y-auto px-4 pb-4 flex flex-col gap-6 ${isSharingScreen ? 'justify-start' : 'justify-center'}`}>
+      <main className={`flex-1 overflow-y-auto px-4 pb-4 flex flex-col gap-6 ${isSharingScreen ? 'justify-start' : 'justify-center'} ${isFullscreen ? 'pt-4' : ''}`}>
         
-        {/* Passa a informação de compartilhamento de tela, para encolher as webcams */}
+        {/* Encolhe e reestrutura webcams dependendo do modo */}
         <WebcamsBar tracks={cameraTracks} isSharing={isSharingScreen} />
 
         {isSharingScreen && (
@@ -344,7 +384,11 @@ function LayoutDaSala() {
 
       {/* Barra de controles inferior */}
       <div className="flex justify-center pb-8 pt-4 shrink-0 relative z-50">
-        <BarraDeControlesCustomizada />
+        <BarraDeControlesCustomizada 
+          isOtherSharing={isOtherSharing} 
+          isFullscreen={isFullscreen} 
+          onToggleFullscreen={toggleFullscreen} 
+        />
       </div>
 
     </div>
@@ -415,12 +459,8 @@ function SalaContent() {
       audio={true}
       token={token}
       serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
-      onError={(error) => {
-        alert(`Erro de conexão: ${error.message}`);
-        console.error("LiveKit Error:", error);
-      }}
       // Quando a conexão cair (seja pelo botão Sair ou queda de rede), o roteador nos manda para a Home.
-      //onDisconnected={() => router.push("/")}
+      onDisconnected={() => router.push("/")}
       className="flex min-h-screen flex-col bg-zinc-50 text-zinc-900 transition-colors duration-300 dark:bg-zinc-950 dark:text-zinc-100 font-sans"
     >
       <LayoutDaSala />
