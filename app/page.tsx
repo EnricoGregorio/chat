@@ -14,7 +14,10 @@ export default function Home() {
   useEffect(() => {
     const fetchParticipants = async () => {
       try {
-        const res = await fetch('/api/participants', { cache: 'no-store' });
+        // O Date.now() cria um número único que burla qualquer sistema de cache do mundo
+        const res = await fetch(`/api/participants?t=${Date.now()}`, { 
+          cache: 'no-store' 
+        });
         const data = await res.json();
         if (data.participants) {
           setParticipants(data.participants);
