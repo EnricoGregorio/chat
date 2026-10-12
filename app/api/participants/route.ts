@@ -1,7 +1,12 @@
 import { RoomServiceClient } from 'livekit-server-sdk';
 import { NextResponse } from 'next/server';
 
-export async function GET() {
+// Adiciona o parâmetro 'request' para forçar o Next.js a tratar a rota como dinâmica.
+export async function GET(request: Request) {
+  // Ler a URL do pedido impede o Next.js de gerar cache estático.
+  const url = new URL(request.url);
+  const timestamp = url.searchParams.get('t');
+
   const roomName = "Chat-SalaPrincipal";
   
   // O RoomServiceClient precisa de HTTP/HTTPS, mas a variável de ambiente usa WSS.
