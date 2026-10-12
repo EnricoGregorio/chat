@@ -1,6 +1,8 @@
 import { RoomServiceClient } from 'livekit-server-sdk';
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic'; // Desativa o cache do Vercel para esta rota especificamente.
+
 export async function GET() {
   const roomName = "Chat-SalaPrincipal";
   

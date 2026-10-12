@@ -14,7 +14,7 @@ export default function Home() {
   useEffect(() => {
     const fetchParticipants = async () => {
       try {
-        const res = await fetch('/api/participants');
+        const res = await fetch('/api/participants', { cache: 'no-store' });
         const data = await res.json();
         if (data.participants) {
           setParticipants(data.participants);
