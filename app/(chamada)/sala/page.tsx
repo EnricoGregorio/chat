@@ -275,7 +275,7 @@ function BarraDeControlesCustomizada({
 
   return (
     // Adicionado flex-wrap, max-w-[95vw] para limitar a largura da tela, e ajuste de gaps
-    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 bg-white/55 dark:bg-zinc-900/55 p-2 rounded-2xl backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/50 shadow-lg max-w-[95vw] sm:max-w-fit mx-auto">
+    <div className="flex flex-nowrap sm:flex-wrap items-center gap-2 sm:gap-4 bg-white/55 dark:bg-zinc-900/55 p-2 rounded-2xl backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/50 shadow-lg max-w-[95vw] sm:max-w-fit mx-auto overflow-x-auto">
       <BotaoDispositivo source={Track.Source.Microphone} kind="audioinput" label="Microfone" iconOn={iconMicOn} iconOff={iconMicOff} />
       <BotaoDispositivo source={Track.Source.Camera} kind="videoinput" label="Câmera" iconOn={iconCamOn} iconOff={iconCamOff} />
       
@@ -337,27 +337,34 @@ function LayoutDaSala() {
   // Controle de Tela Cheia nativo / pseudo-fullscreen.
   const [isFullscreen, setIsFullscreen] = useState(false);
   const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen()
-        .then(() => setIsFullscreen(true))
-        .catch(() => setIsFullscreen(true)); // Fallback para iOS
+    // Tenta usar a API nativa primeiro (para Mac, Windows, Android)
+    if (document.documentElement.requestFullscreen) {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(console.error);
+        setIsFullscreen(true);
+      } else {
+        document.exitFullscreen().catch(console.error);
+        setIsFullscreen(false);
+      }
     } else {
-      document.exitFullscreen()
-        .then(() => setIsFullscreen(false))
-        .catch(() => setIsFullscreen(false));
+      // Fallback para iOS (Safari): Usa apenas o estado do React.
+      setIsFullscreen(!isFullscreen);
     }
   };
 
+  // Garante que o estado sincronize se o usuário sair do fullscreen pelo Esc do teclado.
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
+    const handleFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
   return (
-    <div className="flex h-screen w-full flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors duration-300">
+    // Se isFullscreen for true, fixa a div por cima de tudo
+    <div className={`flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors duration-300 ${
+      isFullscreen ? 'fixed inset-0 z-100 h-screen w-screen' : 'h-screen w-full'
+    }`}>
+      
       {/* Cabeçalho que desaparece ao deitar no smartphone ou usar tela cheia */}
       {(!isFullscreen) && (
         <header className="relative flex w-full items-center justify-between sm:justify-center px-6 py-4 sm:px-8 sm:py-6 shrink-0 landscape:hidden sm:landscape:flex">
