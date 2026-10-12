@@ -56,6 +56,16 @@ export default function Home() {
       return;
     }
 
+    // Verifica se o nome já está em uso na sala.
+    const nomeJaExiste = participants.some(
+      (p) => p.toLowerCase() === name.toLowerCase()
+    );
+
+    if (nomeJaExiste) {
+      setError("Este nome já está em uso na sala. Escolha outro.");
+      return;
+    }
+
     // Se passou em tudo, limpa o erro e entra na sala.
     setError("");
     router.push(`/sala?username=${encodeURIComponent(name)}`);

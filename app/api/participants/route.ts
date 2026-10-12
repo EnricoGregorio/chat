@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const timestamp = url.searchParams.get('t');
 
-  const roomName = "Chat-SalaPrincipal";
+  const roomName = "Chat";
   
   // O RoomServiceClient precisa de HTTP/HTTPS, mas a variável de ambiente usa WSS.
   // Então substitui-se o 'wss://' por 'https://' dinamicamente.
