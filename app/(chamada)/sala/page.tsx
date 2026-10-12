@@ -413,8 +413,12 @@ function SalaContent() {
       audio={true}
       token={token}
       serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
+      onError={(error) => {
+        alert(`Erro de conexão: ${error.message}`);
+        console.error("LiveKit Error:", error);
+      }}
       // Quando a conexão cair (seja pelo botão Sair ou queda de rede), o roteador nos manda para a Home.
-      onDisconnected={() => router.push("/")}
+      //onDisconnected={() => router.push("/")}
       className="flex min-h-screen flex-col bg-zinc-50 text-zinc-900 transition-colors duration-300 dark:bg-zinc-950 dark:text-zinc-100 font-sans"
     >
       <LayoutDaSala />
