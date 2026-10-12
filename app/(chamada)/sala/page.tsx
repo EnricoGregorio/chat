@@ -144,14 +144,15 @@ function BotaoDispositivo({
       {/* Botão Principal de Ligar/Desligar */}
       <button 
         onClick={() => toggle()}
-        className={`cursor-pointer flex items-center gap-2 px-4 py-2.5 rounded-l-xl transition-colors duration-200 ${
+        className={`cursor-pointer flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-l-xl transition-colors duration-200 ${
           enabled 
             ? 'hover:bg-zinc-100 dark:hover:bg-zinc-800' 
             : 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40'
         }`}
       >
         {enabled ? iconOn : iconOff}
-        <span className="text-sm font-medium">{label}</span>
+        {/* Esconde o texto no celular e mostra a partir de telas pequenas (sm) */}
+        <span className="hidden sm:inline text-sm font-medium">{label}</span>
       </button>
       
       {/* Divisória sutil */}
@@ -216,14 +217,15 @@ function BotaoSimples({ source, label, iconOn, iconOff }: { source: Track.Source
   return (
     <button 
       onClick={() => toggle()}
-      className={`cursor-pointer flex items-center gap-2 px-4 py-2.5 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm transition-all duration-200 ${
+      className={`cursor-pointer flex items-center gap-2 px-3 sm:px-4 py-2.5 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm transition-all duration-200 ${
         enabled 
           ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800/50' 
           : 'bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800'
       }`}
     >
       {enabled ? iconOn : iconOff}
-      <span className="text-sm font-medium">{label}</span>
+      {/* Esconde o texto no celular */}
+      <span className="hidden sm:inline text-sm font-medium">{label}</span>
     </button>
   );
 }
@@ -287,22 +289,22 @@ function BarraDeControlesCustomizada() {
   );
 
   return (
-    <div className="flex items-center gap-4 bg-white/50 dark:bg-zinc-900/50 p-2 rounded-2xl backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/50 shadow-lg">
+    // Adicionado flex-wrap, max-w-[95vw] para limitar a largura da tela, e ajuste de gaps
+    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 bg-white/50 dark:bg-zinc-900/50 p-2 rounded-2xl backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/50 shadow-lg max-w-[95vw] sm:max-w-fit mx-auto">
       <BotaoDispositivo source={Track.Source.Microphone} kind="audioinput" label="Microfone" iconOn={iconMicOn} iconOff={iconMicOff} />
       <BotaoDispositivo source={Track.Source.Camera} kind="videoinput" label="Câmera" iconOn={iconCamOn} iconOff={iconCamOff} />
       <BotaoSimples source={Track.Source.ScreenShare} label="Tela" iconOn={iconScreenOn} iconOff={iconScreenOff} />
       
-      <div className="w-px h-8 bg-zinc-300 dark:bg-zinc-700 mx-2"></div>
+      <div className="hidden sm:block w-px h-8 bg-zinc-300 dark:bg-zinc-700 mx-2"></div>
       
-      {/* Botão de Sair Customizado */}
       <button 
         onClick={buttonProps.onClick}
-        className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-sm transition-colors font-medium ml-auto cursor-pointer"
+        className="cursor-pointer flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-sm transition-colors font-medium ml-auto"
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
         </svg>
-        Sair da Sala
+        <span>Sair<span className="hidden sm:inline"> da Sala</span></span>
       </button>
     </div>
   );
