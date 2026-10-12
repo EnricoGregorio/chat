@@ -476,7 +476,7 @@ function SalaContent() {
 
   return (
     <LiveKitRoom
-      video={true}
+      video={{ facingMode: "user" }}
       audio={true}
       token={token}
       serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
