@@ -1,38 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Footer from "@/components/footer";
 
 export default function Home() {
   const [username, setUsername] = useState("");
-  const [participants, setParticipants] = useState<string[]>([]);
   const [error, setError] = useState("");
   const router = useRouter();
-
-  useEffect(() => {
-    const fetchParticipants = async () => {
-      try {
-        // O Date.now() cria um número único que burla qualquer sistema de cache do mundo
-        const res = await fetch(`/api/participants?t=${Date.now()}`, { 
-          cache: 'no-store' 
-        });
-        const data = await res.json();
-        if (data.participants) {
-          setParticipants(data.participants);
-        }
-      } catch (e) {
-        console.error("Erro ao buscar participantes:", e);
-      }
-    };
-
-    fetchParticipants();
-    
-    // Atualiza a lista a cada 10 segundos para quem deixar a tela aberta
-    const interval = setInterval(fetchParticipants, 10000);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,33 +26,15 @@ export default function Home() {
       return;
     }
 
-    // Exige pelo menos uma letra, para bloquear "123", "---", "___", etc.
+    // Exige pelo menos uma letra.
     if (!/[a-zA-ZÀ-ÿ]/.test(name)) {
       setError("O nome deve conter pelo menos uma letra.");
       return;
     }
 
-    // Verifica se o nome já está em uso na sala.
-    const nomeJaExiste = participants.some(
-      (p) => p.toLowerCase() === name.toLowerCase()
-    );
-
-    if (nomeJaExiste) {
-      setError("Este nome já está em uso na sala. Escolha outro.");
-      return;
-    }
-
-    // Se passou em tudo, limpa o erro e entra na sala.
+    // Tudo certo, entra na sala direto! O LiveKit (via Tailscale no cliente) cuida do resto.
     setError("");
     router.push(`/sala?username=${encodeURIComponent(name)}`);
-  };
-
-  // Função para renderizar o texto dos participantes dinamicamente.
-  const renderParticipantsText = () => {
-    if (participants.length === 0) return "A sala está vazia.";
-    if (participants.length === 1) return <><span className="font-semibold text-zinc-900 dark:text-zinc-100">{participants[0]}</span> está na call.</>;
-    if (participants.length === 2) return <><span className="font-semibold text-zinc-900 dark:text-zinc-100">{participants[0]}</span> e <span className="font-semibold text-zinc-900 dark:text-zinc-100">{participants[1]}</span> estão na call.</>;
-    return <><span className="font-semibold text-zinc-900 dark:text-zinc-100">{participants[0]}</span>, <span className="font-semibold text-zinc-900 dark:text-zinc-100">{participants[1]}</span> e mais <span className="font-semibold text-zinc-900 dark:text-zinc-100">{participants.length - 2}</span> estão na call.</>;
   };
 
   return (
@@ -94,10 +52,10 @@ export default function Home() {
         {/* Cartão de Entrada */}
         <div className="flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800 md:flex-row">
           
-          {/* Lado Esquerdo - Status */}
+          {/* Lado Esquerdo - Mensagem de Boas-vindas Estática */}
           <div className="flex w-full items-center justify-center bg-zinc-200/50 p-10 dark:bg-zinc-900/50 md:w-1/2">
             <p className="text-center text-lg text-zinc-700 dark:text-zinc-300">
-              {renderParticipantsText()}
+              Insira seu nome para entrar na sala.
             </p>
           </div>
 
