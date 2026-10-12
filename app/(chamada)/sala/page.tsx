@@ -160,6 +160,9 @@ function SalaContent() {
   const router = useRouter();
 
   useEffect(() => {
+    // Se o token já existe, interrompe a função imediatamente!
+    if (token !== "") return;
+
     // Verifica se não está vazio.
     if (!name) {
       router.replace("/");
