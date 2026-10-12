@@ -296,12 +296,20 @@ function BarraDeControlesCustomizada({
         title={isFullscreen ? "Sair da Tela Cheia" : "Tela Cheia"}
       >
         {isFullscreen ? (
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 14h6m0 0v6m0-6L3 21m17-7h-6m0 0v6m0-6l7 7M4 10h6m0 0V4m0 6L3 3m17 7h-6m0 0V4m0 6l7-7" />
+          // Ícone de "Sair da Tela Cheia" (Shrink) corrigido
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M8 3v3a2 2 0 0 1-2 2H3" />
+            <path d="M21 8h-3a2 2 0 0 1-2-2V3" />
+            <path d="M3 16h3a2 2 0 0 1 2 2v3" />
+            <path d="M16 21v-3a2 2 0 0 1 2-2h3" />
           </svg>
         ) : (
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-5V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4M4 20l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
+          // Ícone de "Tela Cheia" (Expand) corrigido
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 3h6v6" />
+            <path d="M9 21H3v-6" />
+            <path d="M21 3l-7 7" />
+            <path d="M3 21l7-7" />
           </svg>
         )}
       </button>
@@ -336,18 +344,24 @@ function LayoutDaSala() {
 
   // Controle de Tela Cheia nativo / pseudo-fullscreen.
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const toggleFullscreen = () => {
-    // Tenta usar a API nativa primeiro (para Mac, Windows, Android)
-    if (document.documentElement.requestFullscreen) {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(console.error);
-        setIsFullscreen(true);
+  const toggleFullscreen = async () => {
+    try {
+      if (document.documentElement.requestFullscreen) {
+        if (!document.fullscreenElement) {
+          // Usa await para forçar o browser a esperar a ativação
+          await document.documentElement.requestFullscreen();
+          setIsFullscreen(true);
+        } else {
+          await document.exitFullscreen();
+          setIsFullscreen(false);
+        }
       } else {
-        document.exitFullscreen().catch(console.error);
-        setIsFullscreen(false);
+        // Fallback seguro para iOS
+        setIsFullscreen(!isFullscreen);
       }
-    } else {
-      // Fallback para iOS (Safari): Usa apenas o estado do React.
+    } catch (err) {
+      console.warn("Erro ao tentar gerenciar fullscreen:", err);
+      // Fallback para CSS fullscreen (pseudo-fullscreen) caso a API nativa falhe
       setIsFullscreen(!isFullscreen);
     }
   };
