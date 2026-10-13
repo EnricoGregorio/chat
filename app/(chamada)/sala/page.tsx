@@ -30,32 +30,26 @@ const EMOJIS = ['👽', '👾', '🤖', '👻', '🤠', '🐱', '🦊', '🐼', 
 
 // Novo WebcamItem recebendo o Participant
 function WebcamItem({ participant, isSharing }: { participant: Participant, isSharing: boolean }) {
-  // Extrai informações vitais do participante atual.
   const isSpeaking = participant.isSpeaking;
-  const isCameraMuted = !participant.isCameraEnabled; // Se a câmera não está ativa, ela está mutada.
-  
-  // Pega a track de vídeo, caso ela exista (útil se precisar passar pra algum componente customizado).
+  const isCameraMuted = !participant.isCameraEnabled;
   const cameraPublication = participant.getTrackPublication(Track.Source.Camera);
 
-  // Gera o Hash único baseado no nome para escolher a cor e o emoji.
   const hash = Array.from(participant.identity).reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const colorClass = PASTEL_COLORS[hash % PASTEL_COLORS.length];
   const emoji = EMOJIS[hash % EMOJIS.length];
 
   return (
     <div 
-      className={`relative overflow-hidden rounded-2xl shadow-sm transition-all duration-300 aspect-video ${
-        isSharing ? 'w-64' : 'w-160' 
+      className={`relative overflow-hidden rounded-2xl shadow-sm transition-all duration-300 aspect-auto min-h-40 ${
+        isSharing ? 'w-64' : 'w-full max-w-2xl' 
       } ${isCameraMuted ? colorClass : 'bg-zinc-900'} ${
-        // Lógica da borda verde.
         isSpeaking 
           ? 'ring-4 ring-green-500 shadow-[0_0_15px_rgba(34,197,94,0.6)]' 
           : 'ring-1 ring-zinc-200 dark:ring-zinc-800'
       }`}
     >
-      {/* SE A CÂMERA TIVER DESLIGADA/AUSENTE: MOSTRA O AVATAR */}
       {isCameraMuted ? (
-        <div className="flex h-full w-full items-center justify-center">
+        <div className="flex h-full w-full items-center justify-center min-h-40">
           <div className={`flex h-24 w-24 items-center justify-center rounded-full bg-white/40 text-5xl backdrop-blur-md dark:bg-black/20 transition-all duration-300 ${
             isSpeaking ? 'scale-110 shadow-[0_0_20px_rgba(34,197,94,0.4)]' : 'shadow-sm scale-100'
           }`}>
@@ -63,7 +57,6 @@ function WebcamItem({ participant, isSharing }: { participant: Participant, isSh
           </div>
         </div>
       ) : (
-        /* Se a câmera estiver ligada, já renderiza o vídeo direto. */
         cameraPublication?.track && (
           <VideoTrack 
              trackRef={{
@@ -76,7 +69,6 @@ function WebcamItem({ participant, isSharing }: { participant: Participant, isSh
         )
       )}
 
-      {/* Nome do Participante na bordinha inferior */}
       <div className="absolute bottom-2 left-2 rounded-md bg-black/60 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm z-10">
         {participant.name || participant.identity}
       </div>
@@ -87,7 +79,6 @@ function WebcamItem({ participant, isSharing }: { participant: Participant, isSh
 // A propriedade 'isSharing' para serve para saber qual tamanho usar.
 // baseada em Participantes e não mais em Tracks.
 function WebcamsBar({ isSharing }: { isSharing: boolean }) {
-  // Pega todo mundo que está na sala (com ou sem hardware)
   const participants = useParticipants();
 
   if (participants.length === 0) return null;
@@ -95,7 +86,6 @@ function WebcamsBar({ isSharing }: { isSharing: boolean }) {
   return (
     <div className="flex flex-wrap justify-center gap-4 p-4">
       {participants.map((participant) => (
-        // Passamos o participant inteiro para o item agora
         <WebcamItem key={participant.identity} participant={participant} isSharing={isSharing} />
       ))}
     </div>
@@ -106,7 +96,7 @@ function WebcamsBar({ isSharing }: { isSharing: boolean }) {
 function ScreenShareArea({ track }: { track: TrackReferenceOrPlaceholder }) {
   return (
     <div className="relative mx-auto w-full max-w-7xl flex-1 flex flex-col justify-center">
-      <div className="relative aspect-video w-full overflow-hidden rounded-2xl shadow-md ring-1 ring-zinc-200 dark:ring-zinc-800 bg-zinc-900">
+      <div className="relative w-full h-full max-h-[75vh] overflow-hidden rounded-2xl shadow-md ring-1 ring-zinc-200 dark:ring-zinc-800 bg-zinc-900">
         <VideoTrack trackRef={track as any} className="h-full w-full object-contain" />
       </div>
     </div>
@@ -132,7 +122,6 @@ function BotaoDispositivo({
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Fecha o popup de forma inteligente se o usuário clicar fora dele.
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -143,10 +132,17 @@ function BotaoDispositivo({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleCycleDevice = () => {
+    if (devices.length > 1) {
+      const currentIndex = devices.findIndex(d => d.deviceId === activeDeviceId);
+      const nextIndex = (currentIndex + 1) % devices.length;
+      setActiveMediaDevice(devices[nextIndex].deviceId);
+    }
+  };
+
   return (
     <div className="relative flex items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm transition-all" ref={menuRef}>
       
-      {/* Botão Principal de Ligar/Desligar */}
       <button 
         onClick={() => toggle()}
         className={`cursor-pointer flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-l-xl transition-colors duration-200 ${
@@ -156,14 +152,26 @@ function BotaoDispositivo({
         }`}
       >
         {enabled ? iconOn : iconOff}
-        {/* Esconde o texto no celular e mostra a partir de telas pequenas (sm) */}
         <span className="hidden sm:inline text-sm font-medium">{label}</span>
       </button>
       
-      {/* Divisória sutil */}
       <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-800"></div>
 
-      {/* Botão da Seta com Rotação Suave */}
+      {devices.length > 1 && (
+        <>
+          <button 
+            onClick={handleCycleDevice}
+            className="cursor-pointer px-2 py-2.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors duration-200"
+            title={`Trocar ${label}`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+          <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-800"></div>
+        </>
+      )}
+
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className={`cursor-pointer px-2 py-2.5 rounded-r-xl transition-colors duration-200 ${
@@ -178,9 +186,8 @@ function BotaoDispositivo({
         </svg>
       </button>
 
-      {/* Lista de Opções Animada com Fundo Sólido */}
       <div 
-        className={`absolute bottom-[calc(100%+8px)] left-0 min-w-65 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl p-2 z-50 origin-bottom transition-all duration-200 ${
+        className={`absolute bottom-[calc(100%+8px)] left-0 min-w-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl p-2 z-50 origin-bottom transition-all duration-200 ${
           isOpen ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto' : 'opacity-0 translate-y-2 scale-95 pointer-events-none'
         }`}
       >
@@ -209,6 +216,9 @@ function BotaoDispositivo({
               )}
             </button>
           ))}
+          {devices.length === 0 && (
+             <div className="px-3 py-2 text-sm text-zinc-500">Nenhum encontrado.</div>
+          )}
         </div>
       </div>
     </div>
