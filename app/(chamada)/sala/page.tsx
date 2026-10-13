@@ -4,18 +4,16 @@ import '@livekit/components-styles';
 import {
   LiveKitRoom,
   RoomAudioRenderer,
-  ControlBar,
   useTracks,
   TrackReferenceOrPlaceholder,
   VideoTrack,
-  useIsMuted,
-  useIsSpeaking,
   useTrackToggle,
   useMediaDeviceSelect,
   useDisconnectButton,
   useLocalParticipant,
+  useParticipants,
 } from '@livekit/components-react';
-import { Track } from 'livekit-client';
+import { Track, Participant } from 'livekit-client';
 import { useEffect, useState, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -30,15 +28,14 @@ const PASTEL_COLORS = [
 
 const EMOJIS = ['👽', '👾', '🤖', '👻', '🤠', '🐱', '🦊', '🐼', '🐨', '🦁', '🐸', '🐙', '🐢', '🦖', '🐳', '🦉', '🦦'];
 
-//  Item individual da webcam.
-function WebcamItem({ trackRef, isSharing }: { trackRef: TrackReferenceOrPlaceholder, isSharing: boolean }) {
-  const participant = trackRef.participant;
+// Novo WebcamItem recebendo o Participant
+function WebcamItem({ participant, isSharing }: { participant: Participant, isSharing: boolean }) {
+  // Extrai informações vitais do participante atual.
+  const isSpeaking = participant.isSpeaking;
+  const isCameraMuted = !participant.isCameraEnabled; // Se a câmera não está ativa, ela está mutada.
   
-  // O hook  prefere receber a referência da track.
-  const isCameraMuted = useIsMuted(trackRef);
-
-  // Hook para detectar se o usuário está falando.
-  const isSpeaking = useIsSpeaking(participant);
+  // Pega a track de vídeo, caso ela exista (útil se precisar passar pra algum componente customizado).
+  const cameraPublication = participant.getTrackPublication(Track.Source.Camera);
 
   // Gera o Hash único baseado no nome para escolher a cor e o emoji.
   const hash = Array.from(participant.identity).reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -50,32 +47,36 @@ function WebcamItem({ trackRef, isSharing }: { trackRef: TrackReferenceOrPlaceho
       className={`relative overflow-hidden rounded-2xl shadow-sm transition-all duration-300 aspect-video ${
         isSharing ? 'w-64' : 'w-160' 
       } ${isCameraMuted ? colorClass : 'bg-zinc-900'} ${
-        // Lógica da borda verde: Se estiver falando, coloca a borda verde grossa e um brilho (glow) verde.
+        // Lógica da borda verde.
         isSpeaking 
           ? 'ring-4 ring-green-500 shadow-[0_0_15px_rgba(34,197,94,0.6)]' 
           : 'ring-1 ring-zinc-200 dark:ring-zinc-800'
       }`}
     >
+      {/* SE A CÂMERA TIVER DESLIGADA/AUSENTE: MOSTRA O AVATAR */}
       {isCameraMuted ? (
         <div className="flex h-full w-full items-center justify-center">
           <div className={`flex h-24 w-24 items-center justify-center rounded-full bg-white/40 text-5xl backdrop-blur-md dark:bg-black/20 transition-all duration-300 ${
-            // Faz o avatar pulsar levemente quando fala e a câmera está desligada.
             isSpeaking ? 'scale-110 shadow-[0_0_20px_rgba(34,197,94,0.4)]' : 'shadow-sm scale-100'
           }`}>
             {emoji}
           </div>
         </div>
       ) : (
-        // Checa se trackRef.publication e trackRef.participant existem
-        // e faz um "Type Assertion" para forçar o TypeScript a aceitar.
-        trackRef.publication && (
+        /* Se a câmera estiver ligada, já renderiza o vídeo direto. */
+        cameraPublication?.track && (
           <VideoTrack 
-            trackRef={trackRef as any} 
-            className="h-full w-full object-cover" 
-          />
+             trackRef={{
+               participant: participant,
+               publication: cameraPublication,
+               source: Track.Source.Camera,
+             }} 
+             className="h-full w-full object-cover" 
+           />
         )
       )}
 
+      {/* Nome do Participante na bordinha inferior */}
       <div className="absolute bottom-2 left-2 rounded-md bg-black/60 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm z-10">
         {participant.name || participant.identity}
       </div>
@@ -84,14 +85,18 @@ function WebcamItem({ trackRef, isSharing }: { trackRef: TrackReferenceOrPlaceho
 }
 
 // A propriedade 'isSharing' para serve para saber qual tamanho usar.
-function WebcamsBar({ tracks, isSharing }: { tracks: TrackReferenceOrPlaceholder[], isSharing: boolean }) {
-  if (tracks.length === 0) return null;
+// baseada em Participantes e não mais em Tracks.
+function WebcamsBar({ isSharing }: { isSharing: boolean }) {
+  // Pega todo mundo que está na sala (com ou sem hardware)
+  const participants = useParticipants();
+
+  if (participants.length === 0) return null;
 
   return (
     <div className="flex flex-wrap justify-center gap-4 p-4">
-      {tracks.map((trackRef) => (
-        // Chama o componente individual.
-        <WebcamItem key={trackRef.participant.identity} trackRef={trackRef} isSharing={isSharing} />
+      {participants.map((participant) => (
+        // Passamos o participant inteiro para o item agora
+        <WebcamItem key={participant.identity} participant={participant} isSharing={isSharing} />
       ))}
     </div>
   );
@@ -331,7 +336,6 @@ function BarraDeControlesCustomizada({
 
 // Layout customizado da sala.
 function LayoutDaSala() {
-  const cameraTracks = useTracks([Track.Source.Camera], { onlySubscribed: false });
   const screenShareTracks = useTracks([Track.Source.ScreenShare], { onlySubscribed: false });
   const { localParticipant } = useLocalParticipant();
 
@@ -396,7 +400,7 @@ function LayoutDaSala() {
       <main className={`flex-1 overflow-y-auto px-4 pb-4 flex flex-col gap-6 ${isSharingScreen ? 'justify-start' : 'justify-center'} ${isFullscreen ? 'pt-4' : ''}`}>
         
         {/* Encolhe e reestrutura webcams dependendo do modo */}
-        <WebcamsBar tracks={cameraTracks} isSharing={isSharingScreen} />
+        <WebcamsBar isSharing={isSharingScreen} />
 
         {isSharingScreen && (
           <ScreenShareArea track={screenShareTracks[0]} />
