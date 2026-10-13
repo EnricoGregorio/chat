@@ -13,7 +13,10 @@ import {
   useLocalParticipant,
   useParticipants,
 } from '@livekit/components-react';
-import { Track, Participant } from 'livekit-client';
+import { 
+  Track,
+  Participant,
+} from 'livekit-client';
 import { useEffect, useState, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -122,6 +125,9 @@ function BotaoDispositivo({
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // Removemos o dispositivo virtual "default" que duplica itens
+  const dispositivosFiltrados = devices.filter(device => device.deviceId !== 'default');
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -133,16 +139,17 @@ function BotaoDispositivo({
   }, []);
 
   const handleCycleDevice = () => {
-    if (devices.length > 1) {
-      const currentIndex = devices.findIndex(d => d.deviceId === activeDeviceId);
-      const nextIndex = (currentIndex + 1) % devices.length;
-      setActiveMediaDevice(devices[nextIndex].deviceId);
+    if (dispositivosFiltrados.length > 1) { // Usa a lista filtrada
+      const currentIndex = dispositivosFiltrados.findIndex(d => d.deviceId === activeDeviceId);
+      const nextIndex = (currentIndex + 1) % dispositivosFiltrados.length;
+      setActiveMediaDevice(dispositivosFiltrados[nextIndex].deviceId);
     }
   };
 
   return (
     <div className="relative flex items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm transition-all" ref={menuRef}>
       
+      {/* ... Botão Principal e Divisória continuam iguais ... */}
       <button 
         onClick={() => toggle()}
         className={`cursor-pointer flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-l-xl transition-colors duration-200 ${
@@ -157,8 +164,8 @@ function BotaoDispositivo({
       
       <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-800"></div>
 
-      {/* Adicionado 'sm:hidden' para esconder o botão de girar no Mac/PC */}
-      {devices.length > 1 && (
+      {/* Usa dispositivosFiltrados para checar se deve mostrar o botão de giro */}
+      {dispositivosFiltrados.length > 1 && (
         <>
           <button 
             onClick={handleCycleDevice}
@@ -173,7 +180,7 @@ function BotaoDispositivo({
         </>
       )}
 
-      {/* Botão da Seta (Menu Suspenso Tradicional) */}
+      {/* ... Botão da Seta continua igual ... */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className={`cursor-pointer px-2 py-2.5 rounded-r-xl transition-colors duration-200 ${
@@ -188,7 +195,7 @@ function BotaoDispositivo({
         </svg>
       </button>
 
-      {/* Lista de Opções Animada */}
+      {/* Lista Animada */}
       <div 
         className={`absolute bottom-[calc(100%+8px)] left-0 min-w-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl p-2 z-50 origin-bottom transition-all duration-200 ${
           isOpen ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto' : 'opacity-0 translate-y-2 scale-95 pointer-events-none'
@@ -198,7 +205,8 @@ function BotaoDispositivo({
           Selecione {label === 'Câmera' ? 'a' : 'o'} {label}
         </div>
         <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
-          {devices.map((device, index) => (
+          {/* O map usa os dispositivosFiltrados */}
+          {dispositivosFiltrados.map((device, index) => (
             <button
               key={device.deviceId}
               onClick={() => {
@@ -211,7 +219,7 @@ function BotaoDispositivo({
                   : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
               }`}
             >
-              {/* Usa o índice para numerar caso o Safari bloqueie o nome real da câmera */}
+              {/* Usa um fallback para o nome se a label vier vazia, removendo a necessidade de mostrar índices */}
               <span className="truncate pr-2">{device.label || `${label} ${index + 1}`}</span>
               {activeDeviceId === device.deviceId && (
                 <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -220,7 +228,7 @@ function BotaoDispositivo({
               )}
             </button>
           ))}
-          {devices.length === 0 && (
+          {dispositivosFiltrados.length === 0 && (
              <div className="px-3 py-2 text-sm text-zinc-500">Nenhum encontrado.</div>
           )}
         </div>
@@ -229,11 +237,19 @@ function BotaoDispositivo({
   );
 }
 
-// Botão Exclusivo para Saída de Áudio (Alto-falantes/Fones)
+// Botão para Saída de Áudio.
 function BotaoSaidaAudio() {
   const { devices, activeDeviceId, setActiveMediaDevice } = useMediaDeviceSelect({ kind: 'audiooutput' });
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const dispositivosFiltrados = devices.filter(device => device.deviceId !== 'default');
+
+  useEffect(() => {
+    if (dispositivosFiltrados.length > 0 && !dispositivosFiltrados.some(d => d.deviceId === activeDeviceId)) {
+      setActiveMediaDevice(dispositivosFiltrados[0].deviceId);
+    }
+  }, [dispositivosFiltrados, activeDeviceId, setActiveMediaDevice]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -245,30 +261,42 @@ function BotaoSaidaAudio() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Se o navegador não suportar saída de áudio (ex: iOS Safari), o botão nem renderiza
+  // Removido o if(!isSupported) daqui
   if (devices.length === 0) return null;
 
   return (
     <div className="relative hidden sm:flex items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm transition-all" ref={menuRef}>
-      
+
+      {/* Botão Principal da Esquerda */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="cursor-pointer flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors duration-200 text-zinc-900 dark:text-zinc-100"
+        className="cursor-pointer flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-l-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors duration-200 text-zinc-900 dark:text-zinc-100"
         title="Saída de Áudio"
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
         </svg>
         <span className="text-sm font-medium">Áudio</span>
+      </button>
+
+      <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-800"></div>
+
+      {/* Botão Exclusivo da Seta */}
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className={`cursor-pointer px-2 py-2.5 rounded-r-xl transition-colors duration-200 ${
+          isOpen ? 'bg-zinc-100 dark:bg-zinc-800' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
+        }`}
+      >
         <svg 
-          className={`w-4 h-4 ml-1 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} 
+          className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} 
           fill="none" viewBox="0 0 24 24" stroke="currentColor"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
-      {/* Lista de Opções Animada */}
+      {/* Lista Animada */}
       <div 
         className={`absolute bottom-[calc(100%+8px)] left-0 min-w-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl p-2 z-50 origin-bottom transition-all duration-200 ${
           isOpen ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto' : 'opacity-0 translate-y-2 scale-95 pointer-events-none'
@@ -278,7 +306,8 @@ function BotaoSaidaAudio() {
           Saída de Áudio
         </div>
         <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
-          {devices.map((device, index) => (
+          {/* Usa o array filtrado para não renderizar a opção "Padrão" */}
+          {dispositivosFiltrados.map((device, index) => (
             <button
               key={device.deviceId}
               onClick={() => {
@@ -366,6 +395,15 @@ function BarraDeControlesCustomizada({
 }) {
   const { buttonProps } = useDisconnectButton({}); // Hook para sair da sala.
 
+  // Verifica se o navegador suporta troca de saída de áudio antes de montar o botão.
+  const [isAudioOutputSupported, setIsAudioOutputSupported] = useState(false);
+  useEffect(() => {
+    if (typeof navigator !== 'undefined') {
+      const isAppleBrowser = navigator.vendor && navigator.vendor.includes('Apple');
+      setIsAudioOutputSupported(!isAppleBrowser);
+    }
+  }, []); // Hook para sair da sala.
+
   // Ícones SVG minimalistas (On/Off)
   const iconMicOn = <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="22" /></svg>;
   const iconMicOff = <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><line x1="2" y1="2" x2="22" y2="22" /><path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2" /><path d="M5 10v2a7 7 0 0 0 12 5" /><path d="M15 9.34V5a3 3 0 0 0-5.68-1.33" /><path d="M9 9v3a3 3 0 0 0 5.12 2.12" /><line x1="12" y1="19" x2="12" y2="22" /></svg>;
@@ -379,7 +417,8 @@ function BarraDeControlesCustomizada({
     <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 bg-white/55 dark:bg-zinc-900/55 p-2 rounded-2xl backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/50 shadow-lg w-full max-w-[95vw] sm:max-w-fit mx-auto overflow-visible">
       <BotaoDispositivo source={Track.Source.Microphone} kind="audioinput" label="Microfone" iconOn={iconMicOn} iconOff={iconMicOff} />
 
-      <BotaoSaidaAudio />
+      {/* NOVO: Renderização Condicional - O componente (e seus hooks) NUNCA rodam no Safari */}
+      {isAudioOutputSupported && <BotaoSaidaAudio />}
 
       <BotaoDispositivo source={Track.Source.Camera} kind="videoinput" label="Câmera" iconOn={iconCamOn} iconOff={iconCamOff} />
       
@@ -400,7 +439,7 @@ function BarraDeControlesCustomizada({
         title={isFullscreen ? "Sair da Tela Cheia" : "Tela Cheia"}
       >
         {isFullscreen ? (
-          // Ícone de "Sair da Tela Cheia" (Shrink) corrigido
+          // Ícone de "Sair da Tela Cheia".
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
             <path d="M8 3v3a2 2 0 0 1-2 2H3" />
             <path d="M21 8h-3a2 2 0 0 1-2-2V3" />
@@ -408,7 +447,7 @@ function BarraDeControlesCustomizada({
             <path d="M16 21v-3a2 2 0 0 1 2-2h3" />
           </svg>
         ) : (
-          // Ícone de "Tela Cheia" (Expand) corrigido
+          // Ícone de "Tela Cheia".
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 3h6v6" />
             <path d="M9 21H3v-6" />
@@ -484,14 +523,19 @@ function LayoutDaSala() {
       
       {/* Cabeçalho que desaparece ao deitar no smartphone ou usar tela cheia */}
       {(!isFullscreen) && (
-        <header className="relative flex w-full items-center justify-between sm:justify-center px-6 py-4 sm:px-8 sm:py-6 shrink-0 landscape:hidden sm:landscape:flex">
-          <div className="sm:absolute sm:left-8">
+        <header className="relative flex w-full items-center justify-between px-6 py-4 sm:px-8 sm:py-6 shrink-0 landscape:hidden sm:landscape:flex z-50">
+          
+          <div className="flex-1 flex justify-start">
             <ThemeToggle />
           </div>
-          <div className="flex items-center gap-4">
+          
+          <div className="flex items-center justify-center gap-3">
             <div className="h-6 w-6 rotate-45 rounded-sm bg-red-700/90 dark:bg-red-600 shadow-sm"></div>
             <span className="text-xl font-medium tracking-tight">Chat</span>
           </div>
+
+          <div className="flex-1 flex justify-end"></div>
+          
         </header>
       )}
 
