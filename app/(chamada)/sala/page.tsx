@@ -40,8 +40,8 @@ function WebcamItem({ participant, isSharing }: { participant: Participant, isSh
 
   return (
     <div 
-      className={`relative overflow-hidden rounded-2xl shadow-sm transition-all duration-300 aspect-auto min-h-40 ${
-        isSharing ? 'w-64' : 'w-full max-w-2xl' 
+      className={`relative overflow-hidden rounded-2xl shadow-sm transition-all duration-300 aspect-video ${
+        isSharing ? 'w-64' : 'w-full max-w-[90vw] sm:w-100 lg:w-150' 
       } ${isCameraMuted ? colorClass : 'bg-zinc-900'} ${
         isSpeaking 
           ? 'ring-4 ring-green-500 shadow-[0_0_15px_rgba(34,197,94,0.6)]' 
@@ -49,7 +49,7 @@ function WebcamItem({ participant, isSharing }: { participant: Participant, isSh
       }`}
     >
       {isCameraMuted ? (
-        <div className="flex h-full w-full items-center justify-center min-h-40">
+        <div className="flex h-full w-full items-center justify-center">
           <div className={`flex h-24 w-24 items-center justify-center rounded-full bg-white/40 text-5xl backdrop-blur-md dark:bg-black/20 transition-all duration-300 ${
             isSpeaking ? 'scale-110 shadow-[0_0_20px_rgba(34,197,94,0.4)]' : 'shadow-sm scale-100'
           }`}>
@@ -157,21 +157,23 @@ function BotaoDispositivo({
       
       <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-800"></div>
 
+      {/* Adicionado 'sm:hidden' para esconder o botão de girar no Mac/PC */}
       {devices.length > 1 && (
         <>
           <button 
             onClick={handleCycleDevice}
-            className="cursor-pointer px-2 py-2.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors duration-200"
+            className="cursor-pointer px-2 py-2.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors duration-200 sm:hidden"
             title={`Trocar ${label}`}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </button>
-          <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-800"></div>
+          <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-800 sm:hidden"></div>
         </>
       )}
 
+      {/* Botão da Seta (Menu Suspenso Tradicional) */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className={`cursor-pointer px-2 py-2.5 rounded-r-xl transition-colors duration-200 ${
@@ -186,6 +188,7 @@ function BotaoDispositivo({
         </svg>
       </button>
 
+      {/* Lista de Opções Animada */}
       <div 
         className={`absolute bottom-[calc(100%+8px)] left-0 min-w-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl p-2 z-50 origin-bottom transition-all duration-200 ${
           isOpen ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto' : 'opacity-0 translate-y-2 scale-95 pointer-events-none'
@@ -195,7 +198,7 @@ function BotaoDispositivo({
           Selecione {label === 'Câmera' ? 'a' : 'o'} {label}
         </div>
         <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
-          {devices.map(device => (
+          {devices.map((device, index) => (
             <button
               key={device.deviceId}
               onClick={() => {
@@ -208,7 +211,8 @@ function BotaoDispositivo({
                   : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
               }`}
             >
-              <span className="truncate pr-2">{device.label || 'Dispositivo Padrão'}</span>
+              {/* Usa o índice para numerar caso o Safari bloqueie o nome real da câmera */}
+              <span className="truncate pr-2">{device.label || `${label} ${index + 1}`}</span>
               {activeDeviceId === device.deviceId && (
                 <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -290,7 +294,7 @@ function BarraDeControlesCustomizada({
 
   return (
     // Adicionado flex-wrap, max-w-[95vw] para limitar a largura da tela, e ajuste de gaps
-    <div className="flex flex-nowrap sm:flex-wrap items-center gap-2 sm:gap-4 bg-white/55 dark:bg-zinc-900/55 p-2 rounded-2xl backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/50 shadow-lg max-w-[95vw] sm:max-w-fit mx-auto overflow-x-auto">
+    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 bg-white/55 dark:bg-zinc-900/55 p-2 rounded-2xl backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/50 shadow-lg w-full max-w-[95vw] sm:max-w-fit mx-auto overflow-visible">
       <BotaoDispositivo source={Track.Source.Microphone} kind="audioinput" label="Microfone" iconOn={iconMicOn} iconOff={iconMicOff} />
       <BotaoDispositivo source={Track.Source.Camera} kind="videoinput" label="Câmera" iconOn={iconCamOn} iconOff={iconCamOff} />
       
