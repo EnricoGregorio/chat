@@ -229,6 +229,82 @@ function BotaoDispositivo({
   );
 }
 
+// Botão Exclusivo para Saída de Áudio (Alto-falantes/Fones)
+function BotaoSaidaAudio() {
+  const { devices, activeDeviceId, setActiveMediaDevice } = useMediaDeviceSelect({ kind: 'audiooutput' });
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Se o navegador não suportar saída de áudio (ex: iOS Safari), o botão nem renderiza
+  if (devices.length === 0) return null;
+
+  return (
+    <div className="relative hidden sm:flex items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm transition-all" ref={menuRef}>
+      
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="cursor-pointer flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors duration-200 text-zinc-900 dark:text-zinc-100"
+        title="Saída de Áudio"
+      >
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
+        </svg>
+        <span className="text-sm font-medium">Áudio</span>
+        <svg 
+          className={`w-4 h-4 ml-1 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} 
+          fill="none" viewBox="0 0 24 24" stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* Lista de Opções Animada */}
+      <div 
+        className={`absolute bottom-[calc(100%+8px)] left-0 min-w-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl p-2 z-50 origin-bottom transition-all duration-200 ${
+          isOpen ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto' : 'opacity-0 translate-y-2 scale-95 pointer-events-none'
+        }`}
+      >
+        <div className="px-2 py-1.5 mb-1 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+          Saída de Áudio
+        </div>
+        <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
+          {devices.map((device, index) => (
+            <button
+              key={device.deviceId}
+              onClick={() => {
+                setActiveMediaDevice(device.deviceId);
+                setIsOpen(false);
+              }}
+              className={`cursor-pointer w-full text-left px-3 py-2 text-sm rounded-lg transition-colors flex items-center justify-between ${
+                activeDeviceId === device.deviceId 
+                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-medium' 
+                  : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+              }`}
+            >
+              <span className="truncate pr-2">{device.label || `Saída ${index + 1}`}</span>
+              {activeDeviceId === device.deviceId && (
+                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Botão para compartilhar a tela.
 function BotaoSimples({ 
   source,
@@ -245,7 +321,13 @@ function BotaoSimples({
   isDisabled?: boolean,
   isOtherSharing?: boolean
 }) {
-  const { toggle, enabled } = useTrackToggle({ source: source as any });
+  // Opções de áudio e vídeo dinamicamente caso a fonte seja o ScreenShare.
+  const captureOpts = source === Track.Source.ScreenShare ? { audio: true, video: true } : undefined;
+
+  const { toggle, enabled } = useTrackToggle({ 
+    source: source as any, 
+    captureOptions: captureOpts as any 
+  });
   
   return (
     <button 
@@ -296,6 +378,9 @@ function BarraDeControlesCustomizada({
     // Adicionado flex-wrap, max-w-[95vw] para limitar a largura da tela, e ajuste de gaps
     <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 bg-white/55 dark:bg-zinc-900/55 p-2 rounded-2xl backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/50 shadow-lg w-full max-w-[95vw] sm:max-w-fit mx-auto overflow-visible">
       <BotaoDispositivo source={Track.Source.Microphone} kind="audioinput" label="Microfone" iconOn={iconMicOn} iconOff={iconMicOff} />
+
+      <BotaoSaidaAudio />
+
       <BotaoDispositivo source={Track.Source.Camera} kind="videoinput" label="Câmera" iconOn={iconCamOn} iconOff={iconCamOff} />
       
       {/* Botão de Tela Com Compartilhamento Unificado */}
